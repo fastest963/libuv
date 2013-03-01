@@ -665,6 +665,16 @@ UV_EXTERN int uv_tcp_keepalive(uv_tcp_t* handle,
                                unsigned int count);
 
 /*
+ * Enable/disable SO_LINGER
+ * By default, the kernel will return immediately and try to send data to the client
+ * by enabling SO_LINGER and delay 0, the kernel will call close(2) immediately and
+ * discard all pending data.
+ *
+ * If `enable`, then the socket will be closed immediately by the kernel. Defaults to false.
+ */
+UV_EXTERN int uv_tcp_no_linger(uv_tcp_t* handle, int enable);
+
+/*
  * This setting applies to Windows only.
  * Enable/disable simultaneous asynchronous accept requests that are
  * queued by the operating system when listening for new tcp connections.

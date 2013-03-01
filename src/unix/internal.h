@@ -105,7 +105,8 @@ enum {
   UV_STREAM_BLOCKING  = 0x80,   /* Synchronous writes. */
   UV_TCP_NODELAY      = 0x100,  /* Disable Nagle. */
   UV_TCP_KEEPALIVE    = 0x200,  /* Turn on keep-alive. */
-  UV_TCP_SINGLE_ACCEPT = 0x400  /* Only accept() when idle. */
+  UV_TCP_SINGLE_ACCEPT = 0x400, /* Only accept() when idle. */
+  UV_TCP_NOLINGER     = 0x800   /* Don't linger on close. */
 };
 
 /* core */
@@ -153,6 +154,7 @@ int uv__accept(int sockfd);
 int uv_tcp_listen(uv_tcp_t* tcp, int backlog, uv_connection_cb cb);
 int uv__tcp_nodelay(int fd, int on);
 int uv__tcp_keepalive(int fd, int on, unsigned int delay, unsigned int interval, unsigned int count);
+int uv__tcp_no_linger(int fd, int on);
 
 /* pipe */
 int uv_pipe_listen(uv_pipe_t* handle, int backlog, uv_connection_cb cb);

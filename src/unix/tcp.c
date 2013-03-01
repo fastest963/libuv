@@ -322,6 +322,17 @@ int uv__tcp_keepalive(int fd, int on, unsigned int delay,
 }
 
 
+int uv__tcp_no_linger(int fd, int on) {
+  struct linger so_linger;
+  so_linger.l_onoff = on;
+  so_linger.l_linger = 0;
+  if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger)))
+    return -1;
+
+  return 0;
+}
+
+
 int uv_tcp_nodelay(uv_tcp_t* handle, int on) {
   if (uv__stream_fd(handle) != -1)
     if (uv__tcp_nodelay(uv__stream_fd(handle), on))
@@ -351,6 +362,21 @@ int uv_tcp_keepalive(uv_tcp_t* handle, int on, unsigned int delay,
    *      uv_tcp_t with an int that's almost never used...
    *      same with interval and count
    */
+
+  return 0;
+}
+
+
+
+int uv_tcp_no_linger(uv_tcp_t* handle, int on) {
+  if (uv__stream_fd(handle) != -1)
+    if (uv__tcp_no_linger(uv__stream_fd(handle), on))
+      return -1;
+
+  if (on)
+    handle->flags |= UV_TCP_NOLINGER;
+  else
+    handle->flags &= ~UV_TCP_NOLINGER;
 
   return 0;
 }

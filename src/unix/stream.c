@@ -366,6 +366,9 @@ int uv__stream_open(uv_stream_t* stream, int fd, int flags) {
     /* TODO Use delay, interval, count the user passed in. */
     if ((stream->flags & UV_TCP_KEEPALIVE) && uv__tcp_keepalive(fd, 1, 60, 0, 0))
       return uv__set_sys_error(stream->loop, errno);
+
+    if ((stream->flags & UV_TCP_NOLINGER) && uv__tcp_no_linger(fd, 1))
+      return uv__set_sys_error(stream->loop, errno);
   }
 
 #if defined(__APPLE__)
