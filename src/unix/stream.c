@@ -363,8 +363,8 @@ int uv__stream_open(uv_stream_t* stream, int fd, int flags) {
     if ((stream->flags & UV_TCP_NODELAY) && uv__tcp_nodelay(fd, 1))
       return uv__set_sys_error(stream->loop, errno);
 
-    /* TODO Use delay the user passed in. */
-    if ((stream->flags & UV_TCP_KEEPALIVE) && uv__tcp_keepalive(fd, 1, 60))
+    /* TODO Use delay, interval, count the user passed in. */
+    if ((stream->flags & UV_TCP_KEEPALIVE) && uv__tcp_keepalive(fd, 1, 60, 0, 0))
       return uv__set_sys_error(stream->loop, errno);
   }
 

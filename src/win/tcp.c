@@ -26,6 +26,7 @@
 #include "handle-inl.h"
 #include "stream-inl.h"
 #include "req-inl.h"
+#include "mstcpip.h"
 
 
 /*
@@ -57,7 +58,8 @@ static int uv__tcp_nodelay(uv_tcp_t* handle, SOCKET socket, int enable) {
 }
 
 
-static int uv__tcp_keepalive(uv_tcp_t* handle, SOCKET socket, int enable, unsigned int delay) {
+static int uv__tcp_keepalive(uv_tcp_t* handle, SOCKET socket, int enable, unsigned int delay,
+    unsigned int interval, unsigned int count) {
   if (setsockopt(socket,
                  SOL_SOCKET,
                  SO_KEEPALIVE,
@@ -67,14 +69,41 @@ static int uv__tcp_keepalive(uv_tcp_t* handle, SOCKET socket, int enable, unsign
     return -1;
   }
 
-  if (enable && setsockopt(socket,
-                           IPPROTO_TCP,
-                           TCP_KEEPALIVE,
-                           (const char*)&delay,
-                           sizeof delay) == -1) {
+#ifdef TCP_KEEPALIVE
+  if (enable && delay && setsockopt(socket,
+                                    IPPROTO_TCP,
+                                    TCP_KEEPALIVE,
+                                    (const char*)&delay,
+                                    sizeof delay) == -1) {
     uv__set_sys_error(handle->loop, errno);
     return -1;
   }
+#endif
+
+#ifdef SIO_KEEPALIVE_VALS
+  if (enable && (delay || interval)) {
+    struct tcp_keepalive vals;
+    DWORD outlen = 0;
+    vals.onoff = 1;
+    if (!delay) delay = 60 * 60 * 2; /* default is 2 hours */
+    if (!interval) interval = 1; /* default is 1 second */
+    vals.keepalivetime = delay * 1000;
+    vals.keepaliveinterval = interval * 1000;
+    if (WSAIoctl(socket,
+                 SIO_KEEPALIVE_VALS,
+                 &vals,
+                 sizeof(vals),
+                 NULL,
+                 0,
+                 &outlen,
+                 NULL,
+                 NULL) != 0) {
+      return -1;
+    }
+  }
+#endif
+
+  /* count cannot be applied without registry changes and system reboot */
 
   return 0;
 }
@@ -129,9 +158,9 @@ static int uv_tcp_set_socket(uv_loop_t* loop, uv_tcp_t* handle,
     return -1;
   }
 
-  /* TODO: Use stored delay. */
+  /* TODO: Use stored delay, interval, count. */
   if ((handle->flags & UV_HANDLE_TCP_KEEPALIVE) &&
-      uv__tcp_keepalive(handle, socket, 1, 60)) {
+      uv__tcp_keepalive(handle, socket, 1, 60, 0, 0)) {
     return -1;
   }
 
@@ -1194,9 +1223,9 @@ int uv_tcp_nodelay(uv_tcp_t* handle, int enable) {
 }
 
 
-int uv_tcp_keepalive(uv_tcp_t* handle, int enable, unsigned int delay) {
+int uv_tcp_keepalive(uv_tcp_t* handle, int enable, unsigned int delay, unsigned int interval, unsigned int count) {
   if (handle->socket != INVALID_SOCKET &&
-      uv__tcp_keepalive(handle, handle->socket, enable, delay)) {
+      uv__tcp_keepalive(handle, handle->socket, enable, delay, interval, count)) {
     return -1;
   }
 
